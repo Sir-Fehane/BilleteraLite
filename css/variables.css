@@ -1,0 +1,55 @@
+:root {
+  /* Paleta Principal - Azul Celeste */
+  --color-primary: #0284c7;
+  --color-primary-hover: #0369a1;
+  --color-primary-light: #e0f2fe;
+  --color-primary-subtle: #f0f9ff;
+  --color-primary-glow: rgba(2, 132, 199, 0.25);
+  --gradient-primary: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  --gradient-card: linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%);
+
+  /* Superficies y Fondos */
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-border-focus: #38bdf8;
+
+  /* Tipografía y Textos */
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --color-text-inverse: #ffffff;
+
+  /* Estados y Acentos */
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-danger-bg: #fef2f2;
+  --color-success: #10b981;
+  --color-success-bg: #ecfdf5;
+
+  /* Categorías */
+  --cat-comida: #d97706;
+  --cat-comida-bg: #fef3c7;
+  --cat-transporte: #0284c7;
+  --cat-transporte-bg: #e0f2fe;
+  --cat-servicios: #4f46e5;
+  --cat-servicios-bg: #e0e7ff;
+  --cat-ocio: #db2777;
+  --cat-ocio-bg: #fce7f3;
+  --cat-otros: #475569;
+  --cat-otros-bg: #f1f5f9;
+
+  /* Sombras y Elevación */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 10px 25px -5px rgba(2, 132, 199, 0.15), 0 8px 10px -6px rgba(2, 132, 199, 0.1);
+
+  /* Espaciado y Radios */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
