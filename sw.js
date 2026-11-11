@@ -1,12 +1,12 @@
 /**
  * sw.js
  * Service Worker para "Mi Billetera Lite"
- * Estrategia de almacenamiento: Cache First, Network Fallback para el App Shell.
+ * Estrategia: Cache First, Network Fallback para funcionamiento 100% Offline.
  */
 
-const CACHE_NAME = 'billetera-lite-v1';
+const CACHE_NAME = 'billetera-lite-v2';
 
-// Recursos estáticos indispensables para el funcionamiento offline (App Shell)
+// Recursos críticos del App Shell
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -25,96 +25,83 @@ const STATIC_ASSETS = [
 ];
 
 /**
- * Fase INSTALL:
- * Pre-cachea todos los recursos críticos del App Shell.
+ * INSTALL: Cachea todos los archivos locales del App Shell y activa el SW de inmediato.
  */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando Service Worker y cacheando App Shell...');
+  console.log('[SW] Instalando versión:', CACHE_NAME);
+  self.skipWaiting();
+
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        return self.skipWaiting();
-      })
-      .catch((err) => {
-        console.error('[SW] Error en precaché de recursos:', err);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Guardando App Shell en caché...');
+      return cache.addAll(STATIC_ASSETS);
+    }).catch((err) => {
+      console.error('[SW] Error cacheando archivos estáticos:', err);
+    })
   );
 });
 
 /**
- * Fase ACTIVATE:
- * Limpia versiones obsoletas de cachés previas.
+ * ACTIVATE: Toma el control de los clientes abiertos y elimina cachés obsoletas.
  */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando nueva versión del Service Worker...');
+  console.log('[SW] Activando versión:', CACHE_NAME);
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((name) => {
-            if (name !== CACHE_NAME) {
-              console.log('[SW] Eliminando caché antigua:', name);
-              return caches.delete(name);
-            }
-          })
-        );
-      })
-      .then(() => {
-        return self.clients.claim();
-      })
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('[SW] Eliminando caché vieja:', key);
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => {
+      return self.clients.claim();
+    })
   );
 });
 
 /**
- * Fase FETCH:
- * Estrategia Cache First, Network Fallback.
- * 1. Busca en la caché local.
- * 2. Si existe, la entrega de inmediato (tiempo de respuesta ultra rápido y offline).
- * 3. Si no existe, realiza la petición a la red y actualiza la caché dinámicamente.
+ * FETCH: Estrategia Cache First, Network Fallback.
  */
 self.addEventListener('fetch', (event) => {
-  // Solo interceptar peticiones GET compatibles (http/https)
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Evitar interceptar extensiones de navegador u orígenes no relacionados
+  // Solo peticiones del mismo origen (ignora extensiones, etc.)
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // Servir desde caché (Cache First)
-          return cachedResponse;
-        }
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+      if (cachedResponse) {
+        // Encontrado en caché: entregarlo al instante sin red
+        return cachedResponse;
+      }
 
-        // Si no está en caché, intentar red (Network Fallback)
-        return fetch(event.request)
-          .then((networkResponse) => {
-            // Verificar respuesta válida
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-
-            // Clonar respuesta para guardarla en caché dinámica
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-
-            return networkResponse;
-          })
-          .catch(() => {
-            // Si la red falla y es navegación HTML, devolver index.html de respaldo
-            if (event.request.headers.get('accept')?.includes('text/html') || event.request.mode === 'navigate') {
-              return caches.match(new URL('./index.html', self.location).href)
-                .then(fallback => fallback || caches.match('./index.html'));
-            }
+      // No está en caché: buscar en la red y guardar copia
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
           });
-      })
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Fallback cuando no hay red (modo offline)
+        if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+          return caches.match('./index.html').then((res) => res || caches.match('./'));
+        }
+      });
+    })
   );
+});
+
+// Escuchar mensaje para forzar skipWaiting
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

@@ -6,36 +6,38 @@
 let deferredPrompt = null;
 
 /**
- * Registra el Service Worker en el navegador.
+ * Registra el Service Worker en el navegador de manera inmediata.
  */
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
-    console.log('Los Service Workers no están soportados en este navegador.');
+    console.warn('[SW] Los Service Workers no están soportados en este navegador.');
     return;
   }
 
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('./sw.js', {
-        scope: './'
-      });
-      console.log('Service Worker registrado con éxito:', registration.scope);
+  try {
+    const registration = await navigator.serviceWorker.register('./sw.js', {
+      scope: './'
+    });
+    console.log('[SW] Service Worker registrado exitosamente con scope:', registration.scope);
 
-      // Detectar actualizaciones disponibles
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('Nueva versión de Mi Billetera Lite disponible.');
-            }
-          });
-        }
-      });
-    } catch (error) {
-      console.error('Fallo en el registro del Service Worker:', error);
+    // Asegurar que el worker tome control inmediatamente
+    if (registration.waiting) {
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
     }
-  });
+
+    registration.addEventListener('updatefound', () => {
+      const installingWorker = registration.installing;
+      if (installingWorker) {
+        installingWorker.addEventListener('statechange', () => {
+          if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('[SW] Nueva versión instalada y lista.');
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.error('[SW] Error al registrar el Service Worker:', error);
+  }
 }
 
 /**
@@ -50,7 +52,6 @@ export function initInstallPrompt() {
 
   // Capturar el evento de instalación nativo
   window.addEventListener('beforeinstallprompt', (e) => {
-    // Prevenir el banner mini-infobar automático para usar nuestra UI integrada
     e.preventDefault();
     deferredPrompt = e;
     installBanner.classList.add('visible');
